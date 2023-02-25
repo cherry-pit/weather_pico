@@ -15,6 +15,10 @@ Legend for 3 hr incremented forecast:
 "R - Rain"<br>
 "* - Snow"
 
+#
+# How to use
+Connect your 16x2 I2C display to your Raspi Pico W and write all files in this repo to your pico using Thonny.
+Finally update the secrets.py on your pico accordingly and enjoy!
 
 #
 xmltok2.py source: https://github.com/pfalcon/pycopy-lib<br>
