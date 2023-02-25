@@ -8,7 +8,7 @@ A script will run indefinitely and scrape the weather forecast every 30 minutes 
 
 Legend for 3 hr incremented forecast:
 
-C - Clear
-O - Overcast
-R - Rain
-* - Snow
+"C - Clear"
+"O - Overcast"
+"R - Rain"
+"* - Snow"
