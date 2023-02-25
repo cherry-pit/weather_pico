@@ -11,6 +11,11 @@ import secrets
 
 ###
 
+lat, long = secrets.lat, secrets.long
+timezone_offset = secrets.timezone_offset
+
+###
+
 def show_on_lcd(line1,line2):
     I2C_ADDR     = 0x27
     I2C_NUM_ROWS = 2
