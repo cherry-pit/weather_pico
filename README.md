@@ -14,3 +14,9 @@ Legend for 3 hr incremented forecast:
 "O - Overcast"<br>
 "R - Rain"<br>
 "* - Snow"
+
+
+#
+xmltok2.py source: https://github.com/pfalcon/pycopy-lib
+i2c_lcd.py source: https://github.com/dhylands/python_lcd/blob/master/lcd/i2c_lcd.py
+lcd_api.py source: https://github.com/dhylands/python_lcd/blob/master/lcd/lcd_api.py
