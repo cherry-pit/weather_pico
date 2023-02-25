@@ -17,6 +17,6 @@ Legend for 3 hr incremented forecast:
 
 
 #
-xmltok2.py source: https://github.com/pfalcon/pycopy-lib
-i2c_lcd.py source: https://github.com/dhylands/python_lcd/blob/master/lcd/i2c_lcd.py
+xmltok2.py source: https://github.com/pfalcon/pycopy-lib<br>
+i2c_lcd.py source: https://github.com/dhylands/python_lcd/blob/master/lcd/i2c_lcd.py<br>
 lcd_api.py source: https://github.com/dhylands/python_lcd/blob/master/lcd/lcd_api.py
