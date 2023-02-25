@@ -2,18 +2,13 @@
 
 from urequests import get
 from time import localtime, sleep
-
+from ntptime import settime
 from xmltok2 import tokenize
-
-from machine import reset
-from machine import I2C
+from machine import reset, I2C
 from lcd_api import LcdApi
 from i2c_lcd import I2cLcd
+import secrets
 
-### Change lat and Long information to where weather should be reported for
-#
-lat, long =  lat, long
-#
 ###
 
 def show_on_lcd(line1,line2):
@@ -27,33 +22,22 @@ def show_on_lcd(line1,line2):
 
 ###
 
-def getCurrentTime():
+def getCurrentTime(timezone_offset):
+    # returns current (hour, minute) based on time server call
+    settime()
+    local_time = localtime()
+    hour = local_time[3] + timezone_offset
     
-    # the tabular weather that we are scraping deletes outdated data 15 mins after the house
-    # this is a workaround to check the time and to update the forecast faster than 15 mins after the hour
-    # this can break easily and one should change the time.gov link according to their timezone
-
-    ###
-
-    try:
-        url = f'https://timeapi.io/api/Time/current/coordinate?latitude={lat}&longitude={long}'
-        user_agent = {'User-agent': 'Mozilla/5.0'}
-
-        resp = get(url, headers = user_agent).json()
+    if hour < 0:
+        hour += 24
         
-        return resp['hour'], resp['minute'] # adjusted for chicago time
-            # returns hour of day and minute of day
-    
-    except:
-        
-        print('error with time.gov scrape')
-        return -1, -1
+    return (hour, local_time[4]) # returns hour, minute tuple
 
 ###
 
 def getWeather():
 
-    currentHour = getCurrentTime()[0]
+    currentHour = getCurrentTime(timezone_offset)[0]
     
     url = f'https://forecast.weather.gov/MapClick.php?lat={lat}&lon={long}&FcstType=digitalDWML'
     user_agent = {'User-agent': 'Mozilla/5.0'}
@@ -179,8 +163,6 @@ loop_count = 0
 try:
     while True:
         
-        
-        
         retry_count = 0
         line1 = 'error'
         line2 = 'error'
@@ -196,11 +178,9 @@ try:
             forecast = weather[4]
 
             temp_range = f'{min_temp},{max_temp}'
-
-            while len(current_temp) < 3:
-                current_temp += ' '  
-            while len(temp_range) < 7:
-                temp_range = ' ' + temp_range   
+            
+            current_temp = "%-3s" % current_temp
+            temp_range = "% 7s" % temp_range
 
             line1 = f'{current_temp}      {temp_range}'
             line2 = f'{forecast}'
@@ -210,7 +190,7 @@ try:
         
         show_on_lcd(line1,line2)
         
-        minuteOfHour = getCurrentTime()[1]
+        minuteOfHour = getCurrentTime(timezone_offset)[1]
         sleepTime = 60*10
         if minuteOfHour != -1: # if the function ran with no errors
 
@@ -229,8 +209,7 @@ try:
             if minuteOfHour == 5 or minuteOfHour == 35:
                 sleepTime = 0
                 
-            del deltaFrom5, deltaFrom35
-  
+            del deltaFrom5, deltaFrom35 
 
         del minuteOfHour
         
