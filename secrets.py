@@ -1,3 +1,4 @@
+# Enter wifi information here
 SSID = "___"
 PASSWORD = "___"
 
