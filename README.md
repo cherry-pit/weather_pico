@@ -1,6 +1,6 @@
 # weather_pico
 
-![](https://user-images.githubusercontent.com/97217071/221383605-ea1f1f48-6270-4ca0-b4ba-6b4d759e79cf.jpg =250x250)
+![20230225_170314](https://user-images.githubusercontent.com/97217071/221383697-439d28b5-0c7d-4366-848d-be576eadb0ef.jpg)
 
 This is designed to run on a raspberry pico w and to display onto a 16x2 lcd display
 
