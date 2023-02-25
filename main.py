@@ -196,7 +196,7 @@ try:
         show_on_lcd(line1,line2)
         
         minuteOfHour = getCurrentTime(timezone_offset)[1]
-        sleepTime = 60*10
+        sleepTime = 600
         if minuteOfHour != -1: # if the function ran with no errors
 
             deltaFrom5 = 5 - minuteOfHour
