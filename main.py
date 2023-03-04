@@ -222,7 +222,7 @@ try:
         
         del sleepTime
         
-        if loop_count > 144: # reset the pico every 3 days because of memory leaks and to clean up the environment
+        if loop_count > 144: # reset the pico every 3 days
             loop_count = 0
             machine.reset()
         else:
