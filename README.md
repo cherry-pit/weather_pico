@@ -22,6 +22,5 @@ Connect your 16x2 I2C display to your Raspi Pico W and write all files in this r
 Finally update the secrets.py on your pico accordingly and enjoy!
 
 #
-xmltok2.py source: https://github.com/pfalcon/pycopy-lib<br>
 i2c_lcd.py source: https://github.com/dhylands/python_lcd/blob/master/lcd/i2c_lcd.py<br>
 lcd_api.py source: https://github.com/dhylands/python_lcd/blob/master/lcd/lcd_api.py
