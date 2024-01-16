@@ -147,19 +147,21 @@ def show_on_lcd(line1,line2):
 
 from parameters import *
 from network import WLAN, STA_IF
-from machine import lightsleep
+from time import sleep
 
 wlan = WLAN(STA_IF)
+
+show_on_lcd("Starting...", "")
 
 while True:
         
     while not wlan.isconnected():
-        show_on_lcd("Starting...", "Wifi Pending")
+        #show_on_lcd("Starting...", "Wifi Pending")
         wlan.active(True)
         wlan.connect(WIFI_SSID, WIFI_PASSWORD)
-        lightsleep(4 * 1000)
+        sleep(4 )
     
-    show_on_lcd("Wifi Connected", "")
+    #show_on_lcd("Wifi Connected", "")
 
 
     # call weather .gov for the weather report closest to the provided US long and lat
@@ -188,7 +190,7 @@ while True:
         
         # if we are not able to get the response wait a minute and try again
         else:
-            lightsleep(120 * 1000)
+            sleep(120)
             retryCount += 1
 
     del response, responseStatusCode, retryCount, get
@@ -198,7 +200,7 @@ while True:
 
     # Extract the hourly temp
     hourlyTemps = getXMLValues(getXMLElements(xmlWeatherResponseLines, "temperature", ["type"], ["hourly"])[0])
-
+    
     # Extract probabilty of rain as a percent
     hourlyPrecipitation = getXMLValues(getXMLElements(xmlWeatherResponseLines, "probability-of-precipitation" )[0])
 
@@ -207,8 +209,8 @@ while True:
 
 
     del xmlWeatherResponseLines
-
-    currentHour = 0
+    
+    currentHour, minuteOfHour = getCurrentTime(timezone_offset)
 
     # we want to treat the current hour as the first starting index for all the lists of values
     # here we check for what index we should use for this offset and assing it to the varible offset
@@ -224,13 +226,13 @@ while True:
                 hourlyCloudAmount = hourlyCloudAmount[offset:]
 
             break
-
+    
     del x, offset
 
     hourlyTemps = [int(x) for x in hourlyTemps]
     hourlyPrecipitation = [int(x) for x in hourlyPrecipitation]
     hourlyCloudAmount = [int(x) for x in hourlyCloudAmount]
-
+    
     forecastList = []
     # Pull in indicies for the next 24 hours of data in steps of 3
     for n in range(0,len(startTimeStamps[:24]),3):
@@ -268,7 +270,6 @@ while True:
     wlan.disconnect()
     wlan.active(False)
 
-    minuteOfHour = getCurrentTime(timezone_offset)[1]
     sleepTime = 600
 
     # The internal clock on the raspberry pi pico is not incredibly reliable so the below code will account for drift
@@ -289,6 +290,6 @@ while True:
         elif minuteOfHour == 5 or minuteOfHour == 35:
             sleepTime = 0
             
-    lightsleep(sleepTime * 1000) # light sleep is in ms and will retain RAM contents
+    sleep(sleepTime)
 
     del sleepTime, minuteOfHour, deltaFrom5, deltaFrom35
