@@ -112,6 +112,7 @@ def getXMLValues(xmlInput, valueTag="value"):
 def getCurrentTime(timezone_offset):
     
     # returns a touple of current (hour, minute) based on time server call
+    # timezone_offset should be given as an integer for hours difference from GMT
     
     from time import localtime
     from ntptime import settime
@@ -130,6 +131,8 @@ def getCurrentTime(timezone_offset):
         return (-1, -1)
     
 def show_on_lcd(line1,line2):
+
+    # line 1 and line 2 are string inputs that will be displayed accordingly
 
     from machine import I2C, Pin
     from lcd_api import LcdApi
