@@ -40,8 +40,7 @@ while True:
             responseStatusCode = 0
         # if we are able to get the weather report from weather.gov then we write the response content to disk
         if 200 == responseStatusCode:
-            xmlWeatherResponseLines = response.text.split("\n")
-            xmlWeatherResponseLines = response.text.split("\n")
+            xmlWeatherResponseLines = tuple(response.text.split("\n"))
         
         # if we are not able to get the response wait a minute and try again
         else:
