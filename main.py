@@ -40,14 +40,28 @@ while True:
             responseStatusCode = 0
         # if we are able to get the weather report from weather.gov then we write the response content to disk
         if 200 == responseStatusCode:
-            xmlWeatherResponseLines = tuple(response.text.split("\n"))
+            xmlWeatherResponseLines = response.text.split("\n")
         
         # if we are not able to get the response wait a minute and try again
         else:
             sleep(120)
             retryCount += 1
 
-    del response, responseStatusCode, retryCount, get
+    tagsToKeep = ("start-valid-time", "temperature", "probability-of-precipitation", "cloud-amount")
+    # Filter down the XML response to only keep rows with tags we are interested in
+    xmlWeatherResponseLinesKept = []
+    while xmlWeatherResponseLines:
+        xmlLine = xmlWeatherResponseLines.pop(0).strip()
+        firstBracketIndex = xmlLine.find(">")
+        firstSpaceIndex = xmlLine.find(" ")
+        tag = xmlLine[1: firstBracketIndex]
+        if firstSpaceIndex > 0:
+            tag = xmlLine[1: firstSpaceIndex]
+        if tag in tagsToKeep:
+            xmlWeatherResponseLinesKept.append(xmlLine)
+    xmlWeatherResponseLines = (xmlWeatherResponseLinesKept)            
+
+    del response, responseStatusCode, retryCount, get, xmlWeatherResponseLinesKept
 
     from functions import getXMLElements, getXMLValues
     # Extract the start time stamps -- these serve as indecies
@@ -148,4 +162,5 @@ while True:
     sleep(sleepTime)
 
     del sleepTime, minuteOfHour, deltaFrom5, deltaFrom35
+
 
