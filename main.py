@@ -38,8 +38,9 @@ def getXMLElements(xmlInput, tagName, attributeNames=[], attributeValues=[]):
     patt = regex_compile(f"<{tagName}(.*?)</{tagName}>")
     elements = []
 
-    for xmlLine in xmlInput:
+    while xmlInput:
         n = 0
+        xmlLine=xmlInput.pop(0)
         while n < len(xmlLine):
             regSearch = patt.search(xmlLine[n:])
             if regSearch != None:
@@ -186,7 +187,7 @@ while True:
             responseStatusCode = 0
         # if we are able to get the weather report from weather.gov then we write the response content to disk
         if 200 == responseStatusCode:
-            xmlWeatherResponseLines = response.content.decode().split("\n")
+            xmlWeatherResponseLines = response.text.split("\n")
         
         # if we are not able to get the response wait a minute and try again
         else:
