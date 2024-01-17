@@ -4,7 +4,7 @@
 
 This is designed to run on a raspberry pico w and to display onto a 16x2 lcd display
 
-It pulls data from 'https://forecast.weather.gov/MapClick.php?lat={lat}&lon={long}&FcstType=digitalDWML', is will only support US weather forecasts.
+It pulls data from 'https://forecast.weather.gov/MapClick.php?lat={lat}&lon={long}&FcstType=digitalDWML', it will only support US weather forecasts.
 
 All temperatures are in fahrenheit
 
