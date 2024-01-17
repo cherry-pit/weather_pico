@@ -80,7 +80,7 @@ while True:
 
             break
     
-    del x, offset
+    del x
 
     hourlyTemps = [int(x) for x in hourlyTemps]
     hourlyPrecipitation = [int(x) for x in hourlyPrecipitation]
