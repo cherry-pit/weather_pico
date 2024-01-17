@@ -7,7 +7,7 @@
 def getXMLElements(xmlInput, tagName, attributeNames=[], attributeValues=[]):
 
     # - Inputs -
-    # xmlInput - list of xml rows split on "\n" - this is more memory efficent
+    # xmlInput - list or tuple of xml rows split on "\n" 
     # 
     # tagName - string tagename that this function will look for
     #                   tagName example
@@ -23,7 +23,7 @@ def getXMLElements(xmlInput, tagName, attributeNames=[], attributeValues=[]):
     #                     attributeNames example
     # attributeNames = ["dew point", "k-p1h-n1-0"]
     #
-    # This function will return a list of strings for all the elements that match in the xmlFileName with the tagname and provided attribute information
+    # This function will return a tuple of strings for all the elements that match in the xmlFileName with the tagname and provided attribute information
 
     ###################
 
@@ -83,14 +83,16 @@ def getXMLElements(xmlInput, tagName, attributeNames=[], attributeValues=[]):
     return tuple([elements[i] for i in range(len(elements)) if i not in badElementIndicies])
 
 def getXMLValues(xmlInput, valueTag="value"):
-
+    
+    # xmlInput - tuple or list
+    # valueTag - string
     # provide an xml input and this function will return all the entries associated with value tags
-    # this function will return a list of values
+    # this function will return a tuple of values
     # 
     # See the example below
     # '<cloud-amount type="total" units="percent" time-layout="k-p1h-n1-0"><value>71</value><value>75</value><value>84</value><value>88</value><value>91</value>...
     # If the above string is given as the xmlInput the below will be returned
-    # ['71','75','84','88','91',]
+    # ()'71','75','84','88','91')
 
     from re import compile as regex_compile
 
