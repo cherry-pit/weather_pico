@@ -100,16 +100,14 @@ try:
         for x in startTimeStamps:
             if int(x[11:13]) == currentHour:
                 offset = startTimeStamps.index(x)
-
                 # trim down all the lists of values to account for the found offset
                 if offset != 0:
                     startTimeStamps = startTimeStamps[offset:]
                     hourlyTemps = hourlyTemps[offset:]
                     hourlyPrecipitation = hourlyPrecipitation[offset:]
                     hourlyCloudAmount = hourlyCloudAmount[offset:]
-
+                del offset
                 break
-        
         del x
 
         hourlyTemps = [int(x) for x in hourlyTemps]
@@ -181,8 +179,8 @@ try:
                 
         sleep(sleepTime)
 
-        del sleepTime, minuteOfHour, deltaFrom5, deltaFrom35
-        print(dir())
+        del sleepTime, minuteOfHour, deltaFrom5, deltaFrom35, line1_part1, spaceCount, line1, line2
+        
 
 except BaseException as e:
     from functions import show_on_lcd
