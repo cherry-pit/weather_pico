@@ -4,6 +4,42 @@
 ### First we define functions
 ###
 
+def makeRequestGetXML(url, retryCountTotal=30, resetOnFail=True):
+
+    # This function will take a url and perform a http get request
+    # url must be given as a string and the retryCount as an int and resetOnFail as a boolean
+    # It will return a tuple of all the lines in the response as strings split on \n
+    # If resetOnFail is set as true then the pico will reboot if it fails to get a resonse after the x amount of retries set with retryCount
+
+    from requests import get
+    from time import sleep
+    from machine import reset
+
+    responseStatusCode = None
+    retryCount = 0
+    while responseStatusCode != 200:
+
+        # restart the pico if the weather cannon be retrieved after an hour
+        if retryCount > retryCountTotal and resetOnFail:
+            reset()
+
+        try:
+            response = get( url ,
+                            headers={'User-agent': 'Mozilla/5.0'} ,
+                            timeout=15)
+            responseStatusCode = response.status_code
+        # catch the request timing out
+        except OSError:
+            responseStatusCode = 0
+        
+        if 200 == responseStatusCode:
+            responseLines = response.text.split("\n")
+            return (responseLines)
+        # if we are not able to get the response wait a minute and try again
+        else:
+            sleep(120)
+            retryCount += 1 
+
 def getXMLElements(xmlInput, tagName, attributeNames=[], attributeValues=[]):
 
     # - Inputs -
