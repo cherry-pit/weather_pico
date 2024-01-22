@@ -4,7 +4,7 @@
 ### First we define functions
 ###
 
-def makeRequestGetXML(url, retryCountTotal=30, resetOnFail=True):
+def makeRequestGetXML(url, retryCountTotal=5, resetOnFail=True):
 
     # This function will take a url and perform a http get request
     # url must be given as a string and the retryCount as an int and resetOnFail as a boolean
@@ -21,16 +21,18 @@ def makeRequestGetXML(url, retryCountTotal=30, resetOnFail=True):
 
         # restart the pico if the weather cannon be retrieved after an hour
         if retryCount > retryCountTotal and resetOnFail:
-            reset()
+            #reset()
+            raise Exception("Issue making request") 
 
-        try:
-            response = get( url ,
-                            headers={'User-agent': 'Mozilla/5.0'} ,
-                            timeout=15)
-            responseStatusCode = response.status_code
+        #try:
+        print("making request")
+        response = get( url ,
+                        headers={'User-agent': 'Mozilla/5.0'} ,
+                        timeout=35)
+        responseStatusCode = response.status_code
         # catch the request timing out
-        except OSError:
-            responseStatusCode = 0
+        #except OSError:
+        #    responseStatusCode = 0
         
         if 200 == responseStatusCode:
             responseLines = response.text.split("\n")
@@ -181,3 +183,4 @@ def show_on_lcd(line1,line2):
     i2c = I2C(0, sda=Pin(0), scl=Pin(1), freq=200000)
     lcd = I2cLcd(i2c, I2C_ADDR, I2C_NUM_ROWS, I2C_NUM_COLS)
     lcd.putstr(f'{line1}\n{line2}')
+

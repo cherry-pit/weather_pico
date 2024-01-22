@@ -3,6 +3,9 @@
 from parameters import *
 from network import WLAN, STA_IF
 from time import sleep
+import gc
+
+gc.enable()
 
 wlan = WLAN(STA_IF)
 
@@ -20,16 +23,47 @@ for key in sorted(conditions):
 del show_on_lcd, conditions, key
 
 try:
+    
     while True:
             
+        wlan.active(True)
+        wlan.connect(WIFI_SSID, WIFI_PASSWORD)            
         while not wlan.isconnected():
-            wlan.active(True)
-            wlan.connect(WIFI_SSID, WIFI_PASSWORD)
             sleep(4)
+
+        # Gather information about weather alerts
+        # Define the varible used to show if there is a weather alert
+        showCaution = False
+        # Using the county code if provided from the paramters file to see if there are any weather alerts for the county
+        if county_code != "":
+
+            from functions import makeRequestGetXML
+            xmlAlertsResponseLines = makeRequestGetXML(f"https://alerts.weather.gov/cap/wwaatmget.php?x={county_code}&y=1", 2)
+            del makeRequestGetXML
+            
+            # Each weather alert has a summary associated with it
+            tagsToKeep = ("summary")
+            # Filter down the XML response to only keep rows with tags we are interested in
+            xmlAlertsResponseLinesKept = []
+            while xmlAlertsResponseLines:
+                xmlLine = xmlAlertsResponseLines.pop(0).strip()
+                firstBracketIndex = xmlLine.find(">")
+                firstSpaceIndex = xmlLine.find(" ")
+                tag = xmlLine[1: firstBracketIndex]
+                if firstSpaceIndex > 0 and firstSpaceIndex < firstBracketIndex:
+                    tag = tag[:firstSpaceIndex-1]
+                if tag in tagsToKeep and tag != "":
+                    xmlAlertsResponseLinesKept.append(xmlLine)
+            xmlAlertsResponseLines = (xmlAlertsResponseLinesKept)
+
+            if len(xmlAlertsResponseLines) > 0:
+                showCaution = True
+
+            del tagsToKeep, xmlAlertsResponseLinesKept, xmlAlertsResponseLines, firstBracketIndex, firstSpaceIndex, xmlLine, tag
 
         # call weather .gov for the weather report closest to the provided US long and lat
         from functions import makeRequestGetXML
-        xmlWeatherResponseLines = makeRequestGetXML(f"https://forecast.weather.gov/MapClick.php?lat={lat}&lon={long}&FcstType=digitalDWML")
+        xmlWeatherResponseLines = makeRequestGetXML(f"https://forecast.weather.gov/MapClick.php?lat={lat}&lon={long}&FcstType=digitalDWML", 2)
         del makeRequestGetXML
 
         tagsToKeep = ("start-valid-time", "temperature", "probability-of-precipitation", "cloud-amount")
@@ -58,36 +92,6 @@ try:
         # Extract cloud coverage percent
         hourlyCloudAmount = getXMLValues(getXMLElements(xmlWeatherResponseLines, "cloud-amount")[0])
         del xmlWeatherResponseLines, getXMLElements, getXMLValues
-
-        # Gather information about weather alerts
-        # Define the varible used to show if there is a weather alert
-        showCaution = False
-        # Using the county code if provided from the paramters file to see if there are any weather alerts for the county
-        if county_code != "":
-
-            from functions import makeRequestGetXML
-            xmlAlertsResponseLines = makeRequestGetXML(f"https://alerts.weather.gov/cap/wwaatmget.php?x={county_code}&y=1")
-            del makeRequestGetXML
-            
-            # Each weather alert has a summary associated with it
-            tagsToKeep = ("summary")
-            # Filter down the XML response to only keep rows with tags we are interested in
-            xmlAlertsResponseLinesKept = []
-            while xmlAlertsResponseLines:
-                xmlLine = xmlAlertsResponseLines.pop(0).strip()
-                firstBracketIndex = xmlLine.find(">")
-                firstSpaceIndex = xmlLine.find(" ")
-                tag = xmlLine[1: firstBracketIndex]
-                if firstSpaceIndex > 0 and firstSpaceIndex < firstBracketIndex:
-                    tag = tag[:firstSpaceIndex-1]
-                if tag in tagsToKeep and tag != "":
-                    xmlAlertsResponseLinesKept.append(xmlLine)
-            xmlAlertsResponseLines = (xmlAlertsResponseLinesKept)
-
-            if len(xmlAlertsResponseLines) > 0:
-                showCaution = True
-
-            del tagsToKeep, xmlAlertsResponseLinesKept, xmlAlertsResponseLines, firstBracketIndex, firstSpaceIndex, xmlLine, tag
 
         # Now we begin analyzing the retrived information
         # Getting the current time
@@ -159,6 +163,8 @@ try:
         wlan.disconnect()
         wlan.active(False)
 
+        gc.collect()
+
         # The internal clock on the raspberry pi pico is not incredibly reliable so the below code will account for drift
         if minuteOfHour != -1: # if we have a set time
 
@@ -186,3 +192,9 @@ except BaseException as e:
     from functions import show_on_lcd
     print(e)
     show_on_lcd(str(e)[:16], str(e)[16:32])
+    from random import randint
+    numb = randint(0,1000)
+    with open(f"_{numb}.txt","w") as file:
+        file.write(str(dir()))
+        file.write(str(e))
+
