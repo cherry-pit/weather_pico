@@ -37,6 +37,8 @@ try:
         tagsToKeep = ("start-valid-time", "temperature", "probability-of-precipitation", "cloud-amount")
         xmlWeatherResponseLines = makeRequestGetXML(f"https://forecast.weather.gov/MapClick.php?lat={lat}&lon={long}&FcstType=digitalDWML", 1, tagsToKeep, False)
 
+        gc.collect()
+
         # Gather information about weather alerts
         # Define the varible used to show if there is a weather alert or severe weather alert
         showCaution = False
@@ -166,6 +168,8 @@ try:
         sleep(sleepTime)
 
         del sleepTime, minuteOfHour, deltaFrom5, deltaFrom35, line1_part1, spaceCount, line1, line2
+
+        gc.collect()
         
 
 except BaseException as e:
