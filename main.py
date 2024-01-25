@@ -154,11 +154,11 @@ try:
             deltaFrom35 = 35 - minuteOfHour
 
             if minuteOfHour < 5:
-                sleepTime = ( deltaFrom5 ) * 60
+                sleepTime = (( deltaFrom5 ) * 60 ) + 60
             elif minuteOfHour > 5 and minuteOfHour < 35:
-                sleepTime = ( deltaFrom35 ) * 60
+                sleepTime = (( deltaFrom35 ) * 60 ) + 60
             elif minuteOfHour > 35:
-                sleepTime = ( 5 + (60 - minuteOfHour) ) * 60
+                sleepTime = (( 5 + (60 - minuteOfHour) ) * 60 ) + 60
             elif minuteOfHour == 5 or minuteOfHour == 35:
                 sleepTime = 60
                 
