@@ -160,7 +160,7 @@ try:
             elif minuteOfHour > 35:
                 sleepTime = ( 5 + (60 - minuteOfHour) ) * 60
             elif minuteOfHour == 5 or minuteOfHour == 35:
-                sleepTime = 0
+                sleepTime = 60
                 
         else: # if we don't have a set time sleep for 10 minutes and try to run the loop again
             sleepTime = 600
