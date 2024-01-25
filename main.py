@@ -16,7 +16,8 @@ conditions = {'C':'Clear',
               'O':'Overcast',
               'R':'Rain',
                '*':'Snow',
-               '!' : 'Weather advisory'}
+               '!' : 'Weather advisory',
+               "*!!!!!*" : 'Severe Weather'}
 for key in sorted(conditions):
    show_on_lcd(key,conditions[key])
    sleep(2)
@@ -31,56 +32,34 @@ try:
         while not wlan.isconnected():
             sleep(4)
 
+        # call weather .gov for the weather report closest to the provided US long and lat
+        from functions import makeRequestGetXML
+        tagsToKeep = ("start-valid-time", "temperature", "probability-of-precipitation", "cloud-amount")
+        xmlWeatherResponseLines = makeRequestGetXML(f"https://forecast.weather.gov/MapClick.php?lat={lat}&lon={long}&FcstType=digitalDWML", 1, tagsToKeep, False)
+
         # Gather information about weather alerts
-        # Define the varible used to show if there is a weather alert
+        # Define the varible used to show if there is a weather alert or severe weather alert
         showCaution = False
+        showSevereHazard = False
         # Using the county code if provided from the paramters file to see if there are any weather alerts for the county
         if county_code != "":
 
-            from functions import makeRequestGetXML
-            xmlAlertsResponseLines = makeRequestGetXML(f"https://alerts.weather.gov/cap/wwaatmget.php?x={county_code}&y=1", 2)
-            del makeRequestGetXML
-            
-            # Each weather alert has a summary associated with it
-            tagsToKeep = ("summary")
-            # Filter down the XML response to only keep rows with tags we are interested in
-            xmlAlertsResponseLinesKept = []
-            while xmlAlertsResponseLines:
-                xmlLine = xmlAlertsResponseLines.pop(0).strip()
-                firstBracketIndex = xmlLine.find(">")
-                firstSpaceIndex = xmlLine.find(" ")
-                tag = xmlLine[1: firstBracketIndex]
-                if firstSpaceIndex > 0 and firstSpaceIndex < firstBracketIndex:
-                    tag = tag[:firstSpaceIndex-1]
-                if tag in tagsToKeep and tag != "":
-                    xmlAlertsResponseLinesKept.append(xmlLine)
-            xmlAlertsResponseLines = (xmlAlertsResponseLinesKept)
+            tagsToKeep = ("cap:urgency", "cap:severity", "cap:certainty")
+            xmlWeatherAlerts = makeRequestGetXML(f"https://alerts.weather.gov/cap/wwaatmget.php?x={county_code}&y=1", 1, tagsToKeep, False)
 
-            if len(xmlAlertsResponseLines) > 0:
-                showCaution = True
+            for n in range(0, len(xmlWeatherAlerts), 3):
+                urgency = xmlWeatherAlerts[n].upper()
+                severity = xmlWeatherAlerts[n+1].upper()
+                certainty = xmlWeatherAlerts[n+2].upper()
 
-            del tagsToKeep, xmlAlertsResponseLinesKept, xmlAlertsResponseLines, firstBracketIndex, firstSpaceIndex, xmlLine, tag
+                if "UNLIKELY" not in certainty and "PAST" not in urgency and any( x in severity for x in ("MODERATE", "SEVERE", "EXTREME") ):
+                    showSevereHazard = True
+                elif "UNLIKELY" not in certainty and "PAST" not in urgency:
+                    showCaution = True
 
-        # call weather .gov for the weather report closest to the provided US long and lat
-        from functions import makeRequestGetXML
-        xmlWeatherResponseLines = makeRequestGetXML(f"https://forecast.weather.gov/MapClick.php?lat={lat}&lon={long}&FcstType=digitalDWML", 2)
-        del makeRequestGetXML
+            del xmlWeatherAlerts, urgency, severity, certainty
 
-        tagsToKeep = ("start-valid-time", "temperature", "probability-of-precipitation", "cloud-amount")
-        # Filter down the XML response to only keep rows with tags we are interested in
-        xmlWeatherResponseLinesKept = []
-        while xmlWeatherResponseLines:
-            xmlLine = xmlWeatherResponseLines.pop(0).strip()
-            firstBracketIndex = xmlLine.find(">")
-            firstSpaceIndex = xmlLine.find(" ")
-            tag = xmlLine[1:firstBracketIndex]
-            if firstSpaceIndex > 0 and firstSpaceIndex < firstBracketIndex:
-                tag = tag[:firstSpaceIndex-1]
-            if tag in tagsToKeep and tag != "":
-                xmlWeatherResponseLinesKept.append(xmlLine)
-        xmlWeatherResponseLines = (xmlWeatherResponseLinesKept)
-
-        del xmlWeatherResponseLinesKept, tag, tagsToKeep, firstSpaceIndex, firstBracketIndex, xmlLine
+        del makeRequestGetXML, tagsToKeep
 
         from functions import getXMLElements, getXMLValues
         # Extract the start time stamps -- these serve as indecies
@@ -143,16 +122,19 @@ try:
         forecastString = ' '.join(forecastList[:daySplitIndex]) + '|' + ' '.join(forecastList[daySplitIndex:])
 
         warningString = ""
-        if showCaution:
+        if showCaution and not showSevereHazard:
             warningString = "!"
+        elif showSevereHazard: 
+            warningString = "*!!!!!*"
 
         line1_part1 = f"{currentTemp} {warningString}"
         spaceCount = 16-len(line1_part1)-len(f"{minTemp},{maxTemp}")
         line1 = line1_part1 + " " * spaceCount + f"{minTemp},{maxTemp}"
         line2 = forecastString
 
-        del n, median_temp, probaility_of_rain, median_cloud_coverage, weather_letter, minTemp, maxTemp, currentTemp, daySplitIndex, forecastString, forecastList, currentHour
-        del hourlyCloudAmount, hourlyPrecipitation, hourlyTemps, startTimeStamps, warningString, showCaution
+        del n, median_temp, probaility_of_rain, median_cloud_coverage, weather_letter, minTemp, maxTemp, currentTemp, daySplitIndex,\
+              forecastString, forecastList, currentHour, hourlyCloudAmount, hourlyPrecipitation, hourlyTemps, \
+                startTimeStamps, warningString, showCaution
 
         # Now we can display the weather forecast
         from functions import show_on_lcd
@@ -162,8 +144,6 @@ try:
         # We can now shut down wifi
         wlan.disconnect()
         wlan.active(False)
-
-        gc.collect()
 
         # The internal clock on the raspberry pi pico is not incredibly reliable so the below code will account for drift
         if minuteOfHour != -1: # if we have a set time
@@ -197,4 +177,3 @@ except BaseException as e:
     with open(f"_{numb}.txt","w") as file:
         file.write(str(dir()))
         file.write(str(e))
-

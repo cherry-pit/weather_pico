@@ -4,12 +4,14 @@
 ### First we define functions
 ###
 
-def makeRequestGetXML(url, retryCountTotal=5, resetOnFail=True):
+def makeRequestGetXML(url, retryCountTotal=5, tagsToKeep=(), resetOnFail=True):
 
     # This function will take a url and perform a http get request
     # url must be given as a string and the retryCount as an int and resetOnFail as a boolean
     # It will return a tuple of all the lines in the response as strings split on \n
     # If resetOnFail is set as true then the pico will reboot if it fails to get a resonse after the x amount of retries set with retryCount
+    # tags to keep are xml tags that will be kept and returned at the end of the function
+    # if tags to keep are left empty then the whole response will be returned, all tags will be preserved
 
     from requests import get
     from time import sleep
@@ -21,26 +23,46 @@ def makeRequestGetXML(url, retryCountTotal=5, resetOnFail=True):
 
         # restart the pico if the weather cannon be retrieved after an hour
         if retryCount > retryCountTotal and resetOnFail:
-            #reset()
-            raise Exception("Issue making request") 
+            reset()
+        elif retryCount > retryCountTotal and not resetOnFail:
+            raise Exception("Issue making request")        
 
-        #try:
-        print("making request")
-        response = get( url ,
-                        headers={'User-agent': 'Mozilla/5.0'} ,
-                        timeout=35)
-        responseStatusCode = response.status_code
+        try:
+            sleep(1)
+            response = get( url ,
+                            headers={'User-agent': 'Mozilla/5.0'} ,
+                            timeout=35)
+            responseStatusCode = response.status_code
         # catch the request timing out
-        #except OSError:
-        #    responseStatusCode = 0
+        except OSError:
+            responseStatusCode = 0
         
         if 200 == responseStatusCode:
             responseLines = response.text.split("\n")
-            return (responseLines)
         # if we are not able to get the response wait a minute and try again
         else:
             sleep(120)
             retryCount += 1 
+    
+    del response
+
+    if tagsToKeep: 
+        responseLinesKept = []
+        # Filter down the XML response to only keep rows with tags we are interested in
+        while responseLines:
+            xmlLine = responseLines.pop(0).strip()
+            firstBracketIndex = xmlLine.find(">")
+            firstSpaceIndex = xmlLine.find(" ")
+            tag = xmlLine[1: firstBracketIndex]
+            if firstSpaceIndex > 0 and firstSpaceIndex < firstBracketIndex:
+                tag = tag[:firstSpaceIndex-1]
+            if tag in tagsToKeep and tag != "":
+                responseLinesKept.append(xmlLine)
+    
+        return (responseLinesKept)
+    
+    else:
+        return (responseLines)
 
 def getXMLElements(xmlInput, tagName, attributeNames=[], attributeValues=[]):
 
@@ -152,9 +174,11 @@ def getCurrentTime(timezone_offset):
     # returns a touple of current (hour, minute) based on time server call
     # timezone_offset should be given as an integer for hours difference from GMT
     
-    from time import localtime
+    from time import localtime, sleep
     from ntptime import settime
     
+    sleep(1)
+
     try:
         settime()
         local_time = localtime()
