@@ -76,12 +76,16 @@ try:
         from functions import getXMLElements, getXMLValues
         # Extract the start time stamps -- these serve as indecies
         startTimeStamps = getXMLValues("".join(getXMLElements(xmlWeatherResponseLines, "start-valid-time")), valueTag="start-valid-time")
-        # Extract the hourly temp
+        gc.collect()
+        # Extract the     hourly temp
         hourlyTemps = getXMLValues(getXMLElements(xmlWeatherResponseLines, "temperature", ["type"], ["hourly"])[0])
+        gc.collect()
         # Extract probabilty of rain as a percent
         hourlyPrecipitation = getXMLValues(getXMLElements(xmlWeatherResponseLines, "probability-of-precipitation" )[0])
+        gc.collect() 
         # Extract cloud coverage percent
         hourlyCloudAmount = getXMLValues(getXMLElements(xmlWeatherResponseLines, "cloud-amount")[0])
+        gc.collect()
         del xmlWeatherResponseLines, getXMLElements, getXMLValues
 
         # Now we begin analyzing the retrived information

@@ -68,7 +68,9 @@ def limitedGetRequest(url, tagsToKeep=(), timeout=15):
             break
 
     s.close()
-
+    del s
+    gc.collect()
+    
     return (keptLines)
 
 
@@ -102,6 +104,7 @@ def getXMLElements(xmlInput, tagName, attributeNames=[], attributeValues=[]):
     # the below pattern will pull out all the possible attributes assosiated with a specific tag and append them to the list attributeNames
 
     from re import compile as regex_compile
+    import gc
 
     patt = regex_compile(f"<{tagName}(.*?)</{tagName}>")
     elements = []
@@ -160,7 +163,7 @@ def getXMLValues(xmlInput, valueTag="value"):
     # See the example below
     # '<cloud-amount type="total" units="percent" time-layout="k-p1h-n1-0"><value>71</value><value>75</value><value>84</value><value>88</value><value>91</value>...
     # If the above string is given as the xmlInput the below will be returned
-    # ()'71','75','84','88','91')
+    # ('71','75','84','88','91')
 
     from re import compile as regex_compile
 
