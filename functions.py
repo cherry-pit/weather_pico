@@ -63,6 +63,72 @@ def makeRequestGetXML(url, retryCountTotal=5, tagsToKeep=(), resetOnFail=True):
     
     else:
         return (responseLines)
+    
+def limitedGetRequest(url, tagsToKeep=(), timeout=15):
+    
+    import ussl, usocket
+
+    scheme, _, host, target = url.split("/",3)
+
+    if scheme == "https:":
+        port = 443
+    elif scheme == "http:":
+        port = 80
+
+    ai = usocket.getaddrinfo(host, port, 0, usocket.SOCK_STREAM)[0]
+    s = usocket.socket(ai[0], usocket.SOCK_STREAM, ai[2])
+    s.settimeout(timeout) # time for connection to timeout in seconds
+    s.connect(ai[-1])
+    s = ussl.wrap_socket(s, server_hostname=host)
+    s.write(bytes(f"GET /{target} HTTP/1.0\r\n", "utf-8"))
+    s.write(bytes(f"Host: {host}\r\n", "utf-8"))
+    s.write(b"User-agent: Mozilla/5.0\r\n")
+    s.write(b"Connection: close\r\n\r\n")
+
+    keptLines = []
+    stringBuffer = ""
+    lineBuffer = []
+    buildBuffer = False
+    while True:
+        
+        x = s.read(1).decode()
+        if x == None or x == "":
+            break
+        
+        if buildBuffer:
+            stringBuffer += x
+
+        if not lineBuffer:
+            if x == "<" and not buildBuffer:
+                buildBuffer = True
+                stringBuffer += x
+            elif x == ">" and buildBuffer:
+                buildBuffer = False
+                if any( tag in stringBuffer for tag in tagsToKeep ) and stringBuffer[1] != "/":
+                    buildBuffer = True
+                    lineBuffer.append(stringBuffer)
+                stringBuffer = ""
+
+        elif len(lineBuffer) == 1:
+            if stringBuffer[-2:] == "</":
+                lineBuffer.append(stringBuffer[:-2])
+                stringBuffer = "</"
+
+        elif len(lineBuffer) > 1:
+            if x == ">":
+                if any( tag in stringBuffer for tag in tagsToKeep ) and stringBuffer == "</" + lineBuffer[0][1:]:
+                    lineBuffer.append(stringBuffer)
+                    keptLines.append("".join(lineBuffer))
+                    buildBuffer == False
+                    stringBuffer = ""
+                    lineBuffer = []
+                else:
+                    buildBuffer == False
+                    stringBuffer = ""
+                    lineBuffer = []
+
+    return (keptLines)
+
 
 def getXMLElements(xmlInput, tagName, attributeNames=[], attributeValues=[]):
 

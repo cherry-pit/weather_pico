@@ -33,9 +33,10 @@ try:
             sleep(4)
 
         # call weather .gov for the weather report closest to the provided US long and lat
-        from functions import makeRequestGetXML
-        tagsToKeep = ("start-valid-time", "temperature", "probability-of-precipitation", "cloud-amount")
-        xmlWeatherResponseLines = makeRequestGetXML(f"https://forecast.weather.gov/MapClick.php?lat={lat}&lon={long}&FcstType=digitalDWML", 1, tagsToKeep, False)
+        from functions import limitedGetRequest
+        tagsToKeep = ["start-valid-time", "temperature", "probability-of-precipitation", "cloud-amount"]
+        #xmlWeatherResponseLines = makeRequestGetXML(f"https://forecast.weather.gov/MapClick.php?lat={lat}&lon={long}&FcstType=digitalDWML", 1, tagsToKeep, False)
+        xmlWeatherResponseLines = limitedGetRequest(f"https://forecast.weather.gov/MapClick.php?lat={lat}&lon={long}&FcstType=digitalDWML", tagsToKeep, timeout=15)
 
         gc.collect()
 
@@ -45,23 +46,25 @@ try:
         showSevereHazard = False
         # Using the county code if provided from the paramters file to see if there are any weather alerts for the county
         if county_code != "":
-
-            tagsToKeep = ("cap:urgency", "cap:severity", "cap:certainty")
-            xmlWeatherAlerts = makeRequestGetXML(f"https://alerts.weather.gov/cap/wwaatmget.php?x={county_code}&y=1", 1, tagsToKeep, False)
+                # https://api.weather.gov/alerts/active?point=41,-87
+            tagsToKeep = ["cap:urgency", "cap:severity", "cap:certainty"]
+            #xmlWeatherAlerts = makeRequestGetXML(f"https://alerts.weather.gov/cap/wwaatmget.php?x={county_code}&y=1", 1, tagsToKeep, False)
+            xmlWeatherAlerts = limitedGetRequest(f"https://alerts.weather.gov/cap/wwaatmget.php?x={county_code}&y=1", tagsToKeep, timeout=15)
 
             for n in range(0, len(xmlWeatherAlerts), 3):
                 urgency = xmlWeatherAlerts[n].upper()
                 severity = xmlWeatherAlerts[n+1].upper()
                 certainty = xmlWeatherAlerts[n+2].upper()
 
-                if "UNLIKELY" not in certainty and "PAST" not in urgency and any( x in severity for x in ("MODERATE", "SEVERE", "EXTREME") ):
+                # Possible severities are "Minor", "MODERATE", "SEVERE", "EXTREME"
+                if "UNLIKELY" not in certainty and "PAST" not in urgency and any( x in severity for x in ("SEVERE", "EXTREME") ):
                     showSevereHazard = True
                 elif "UNLIKELY" not in certainty and "PAST" not in urgency:
                     showCaution = True
 
             del xmlWeatherAlerts, urgency, severity, certainty
 
-        del makeRequestGetXML, tagsToKeep
+        del limitedGetRequest, tagsToKeep
 
         from functions import getXMLElements, getXMLValues
         # Extract the start time stamps -- these serve as indecies
@@ -164,13 +167,13 @@ try:
                 
         else: # if we don't have a set time sleep for 10 minutes and try to run the loop again
             sleepTime = 600
-                
-        sleep(sleepTime)
 
-        del sleepTime, minuteOfHour, deltaFrom5, deltaFrom35, line1_part1, spaceCount, line1, line2
+        del minuteOfHour, deltaFrom5, deltaFrom35, line1_part1, spaceCount, line1, line2
 
         gc.collect()
-        
+
+        sleep(sleepTime)
+
 
 except BaseException as e:
     from functions import show_on_lcd
