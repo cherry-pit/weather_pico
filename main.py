@@ -20,7 +20,7 @@ conditions = {'C':'Clear',
                "*!!!!!*" : 'Severe Weather'}
 for key in sorted(conditions):
    show_on_lcd(key,conditions[key])
-   sleep(2)
+   sleep(0.1)
 del show_on_lcd, conditions, key
 
 try:
@@ -41,30 +41,37 @@ try:
         gc.collect()
 
         # Gather information about weather alerts
-        # Define the varible used to show if there is a weather alert or severe weather alert
-        showCaution = False
-        showSevereHazard = False
+        # Define the varible used to show if there is a weather alert
+        cautionAlertString = ""
         # Using the county code if provided from the paramters file to see if there are any weather alerts for the county
         if county_code != "":
                 # https://api.weather.gov/alerts/active?point=41,-87
             tagsToKeep = ["cap:urgency", "cap:severity", "cap:certainty"]
             #xmlWeatherAlerts = makeRequestGetXML(f"https://alerts.weather.gov/cap/wwaatmget.php?x={county_code}&y=1", 1, tagsToKeep, False)
             xmlWeatherAlerts = limitedGetRequest(f"https://alerts.weather.gov/cap/wwaatmget.php?x={county_code}&y=1", tagsToKeep, timeout=15)
-
-            for n in range(0, len(xmlWeatherAlerts), 3):
-                urgency = xmlWeatherAlerts[n].upper()
-                severity = xmlWeatherAlerts[n+1].upper()
-                certainty = xmlWeatherAlerts[n+2].upper()
-
-                # Possible severities are "Minor", "MODERATE", "SEVERE", "EXTREME"
-                if "UNLIKELY" not in certainty and "PAST" not in urgency and any( x in severity for x in ("SEVERE", "EXTREME") ):
-                    showSevereHazard = True
-                elif "UNLIKELY" not in certainty and "PAST" not in urgency:
-                    showCaution = True
-
-            del xmlWeatherAlerts, urgency, severity, certainty
+            
+            if xmlWeatherAlerts:
+                for n in range(0, len(xmlWeatherAlerts), 3):
+                    urgency = xmlWeatherAlerts[n].upper()
+                    severity = xmlWeatherAlerts[n+1].upper()
+                    certainty = xmlWeatherAlerts[n+2].upper()
+                    
+                    # Possible severities are "MINOR", "MODERATE", "SEVERE", "EXTREME"
+                    if "UNLIKELY" not in certainty and "PAST" not in urgency:
+                        if "MINOR" in severity and len(cautionAlertString) < len("!"):
+                            cautionAlertString = "!"
+                        elif "MODERATE" in severity and len(cautionAlertString) < len("!!"):
+                            cautionAlertString = "!!"
+                        elif "SEVERE" in severity and len(cautionAlertString) < len("!!!"):
+                            cautionAlertString = "!!!"
+                        elif "EXTREME" in severity and len(cautionAlertString) < len("*!!!!!*"):
+                            cautionAlertString = "*!!!!!*"
+                
+                del xmlWeatherAlerts, urgency, severity, certainty
 
         del limitedGetRequest, tagsToKeep
+
+        gc.collect()
 
         from functions import getXMLElements, getXMLValues
         # Extract the start time stamps -- these serve as indecies
@@ -82,6 +89,8 @@ try:
         from functions import getCurrentTime
         currentHour, minuteOfHour = getCurrentTime(timezone_offset)
         del getCurrentTime
+
+        gc.collect()
 
         # we want to treat the current hour as the first starting index for all the lists of values
         # here we check for what index we should use for this offset and assing it to the varible offset
@@ -126,20 +135,14 @@ try:
         daySplitIndex = round( ( 24 - currentHour ) / 3 )
         forecastString = ' '.join(forecastList[:daySplitIndex]) + '|' + ' '.join(forecastList[daySplitIndex:])
 
-        warningString = ""
-        if showCaution and not showSevereHazard:
-            warningString = "!"
-        elif showSevereHazard: 
-            warningString = "*!!!!!*"
-
-        line1_part1 = f"{currentTemp} {warningString}"
+        line1_part1 = f"{currentTemp} {cautionAlertString}"
         spaceCount = 16-len(line1_part1)-len(f"{minTemp},{maxTemp}")
         line1 = line1_part1 + " " * spaceCount + f"{minTemp},{maxTemp}"
         line2 = forecastString
 
         del n, median_temp, probaility_of_rain, median_cloud_coverage, weather_letter, minTemp, maxTemp, currentTemp, daySplitIndex,\
               forecastString, forecastList, currentHour, hourlyCloudAmount, hourlyPrecipitation, hourlyTemps, \
-                startTimeStamps, warningString, showCaution
+                startTimeStamps
 
         # Now we can display the weather forecast
         from functions import show_on_lcd
@@ -181,6 +184,6 @@ except BaseException as e:
     show_on_lcd(str(e)[:16], str(e)[16:32])
     from random import randint
     numb = randint(0,1000)
-    with open(f"_{numb}.txt","w") as file:
-        file.write(str(dir()))
-        file.write(str(e))
+    #with open(f"_{numb}.txt","w") as file:
+    #    file.write(str(dir()))
+    #    file.write(str(e))

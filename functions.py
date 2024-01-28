@@ -3,70 +3,10 @@
 ###
 ### First we define functions
 ###
-
-def makeRequestGetXML(url, retryCountTotal=5, tagsToKeep=(), resetOnFail=True):
-
-    # This function will take a url and perform a http get request
-    # url must be given as a string and the retryCount as an int and resetOnFail as a boolean
-    # It will return a tuple of all the lines in the response as strings split on \n
-    # If resetOnFail is set as true then the pico will reboot if it fails to get a resonse after the x amount of retries set with retryCount
-    # tags to keep are xml tags that will be kept and returned at the end of the function
-    # if tags to keep are left empty then the whole response will be returned, all tags will be preserved
-
-    from requests import get
-    from time import sleep
-    from machine import reset
-
-    responseStatusCode = None
-    retryCount = 0
-    while responseStatusCode != 200:
-
-        # restart the pico if the weather cannon be retrieved after an hour
-        if retryCount > retryCountTotal and resetOnFail:
-            reset()
-        elif retryCount > retryCountTotal and not resetOnFail:
-            raise Exception("Issue making request")        
-
-        try:
-            sleep(1)
-            response = get( url ,
-                            headers={'User-agent': 'Mozilla/5.0'} ,
-                            timeout=35)
-            responseStatusCode = response.status_code
-        # catch the request timing out
-        except OSError:
-            responseStatusCode = 0
-        
-        if 200 == responseStatusCode:
-            responseLines = response.text.split("\n")
-        # if we are not able to get the response wait a minute and try again
-        else:
-            sleep(120)
-            retryCount += 1 
-    
-    del response
-
-    if tagsToKeep: 
-        responseLinesKept = []
-        # Filter down the XML response to only keep rows with tags we are interested in
-        while responseLines:
-            xmlLine = responseLines.pop(0).strip()
-            firstBracketIndex = xmlLine.find(">")
-            firstSpaceIndex = xmlLine.find(" ")
-            tag = xmlLine[1: firstBracketIndex]
-            if firstSpaceIndex > 0 and firstSpaceIndex < firstBracketIndex:
-                tag = tag[:firstSpaceIndex-1]
-            if tag in tagsToKeep and tag != "":
-                responseLinesKept.append(xmlLine)
-    
-        return (responseLinesKept)
-    
-    else:
-        return (responseLines)
-    
+   
 def limitedGetRequest(url, tagsToKeep=(), timeout=15):
     
-    import ussl, usocket
+    import ussl, usocket, gc
 
     scheme, _, host, target = url.split("/",3)
 
@@ -80,52 +20,54 @@ def limitedGetRequest(url, tagsToKeep=(), timeout=15):
     s.settimeout(timeout) # time for connection to timeout in seconds
     s.connect(ai[-1])
     s = ussl.wrap_socket(s, server_hostname=host)
-    s.write(bytes(f"GET /{target} HTTP/1.0\r\n", "utf-8"))
-    s.write(bytes(f"Host: {host}\r\n", "utf-8"))
+    s.write(f"GET /{target} HTTP/1.0\r\n")
+    s.write(f"Host: {host}\r\n")
     s.write(b"User-agent: Mozilla/5.0\r\n")
     s.write(b"Connection: close\r\n\r\n")
-
+    
     keptLines = []
-    stringBuffer = ""
-    lineBuffer = []
-    buildBuffer = False
+    strBuff = []
+    buildString = False
+    keepLine = False
     while True:
         
-        x = s.read(1).decode()
-        if x == None or x == "":
-            break
+        buff = s.read(512)
+        gc.collect()
         
-        if buildBuffer:
-            stringBuffer += x
+        if buff != b"":
+            for x in buff:
+                
+                x = chr(x)
 
-        if not lineBuffer:
-            if x == "<" and not buildBuffer:
-                buildBuffer = True
-                stringBuffer += x
-            elif x == ">" and buildBuffer:
-                buildBuffer = False
-                if any( tag in stringBuffer for tag in tagsToKeep ) and stringBuffer[1] != "/":
-                    buildBuffer = True
-                    lineBuffer.append(stringBuffer)
-                stringBuffer = ""
+                if buildString:
+                    strBuff.append(x)
+                
+                if x == "<" and not buildString:
+                    buildString = True
+                    strBuff.append(x)
+                
+                elif x == ">" and buildString and not keepLine:
+                    bufferTagName = "".join(strBuff[ 1: -1 ]).split(" ",1)[0]
+                    
+                    if any( tag in bufferTagName for tag in tagsToKeep ) and strBuff[1] != "/":
+                        keepLine = True
+                    else:
+                        buildString = False
+                        keepLine = False
+                        strBuff = []
+                    
+                elif x == ">" and buildString and keepLine:
+                    closingTag = "</" + bufferTagName + ">"
+                    if "".join(strBuff[-len(closingTag):]) == closingTag:
+                        keptLines.append( "".join(strBuff) )
+                        buildString = False
+                        keepLine = False
+                        strBuff = []
+                    
+        else:
+            break
 
-        elif len(lineBuffer) == 1:
-            if stringBuffer[-2:] == "</":
-                lineBuffer.append(stringBuffer[:-2])
-                stringBuffer = "</"
-
-        elif len(lineBuffer) > 1:
-            if x == ">":
-                if any( tag in stringBuffer for tag in tagsToKeep ) and stringBuffer == "</" + lineBuffer[0][1:]:
-                    lineBuffer.append(stringBuffer)
-                    keptLines.append("".join(lineBuffer))
-                    buildBuffer == False
-                    stringBuffer = ""
-                    lineBuffer = []
-                else:
-                    buildBuffer == False
-                    stringBuffer = ""
-                    lineBuffer = []
+    s.close()
 
     return (keptLines)
 
