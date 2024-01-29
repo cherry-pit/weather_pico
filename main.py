@@ -35,7 +35,6 @@ try:
         # call weather .gov for the weather report closest to the provided US long and lat
         from functions import limitedGetRequest
         tagsToKeep = ["start-valid-time", "temperature", "probability-of-precipitation", "cloud-amount"]
-        #xmlWeatherResponseLines = makeRequestGetXML(f"https://forecast.weather.gov/MapClick.php?lat={lat}&lon={long}&FcstType=digitalDWML", 1, tagsToKeep, False)
         xmlWeatherResponseLines = limitedGetRequest(f"https://forecast.weather.gov/MapClick.php?lat={lat}&lon={long}&FcstType=digitalDWML", tagsToKeep, timeout=15)
 
         gc.collect()
@@ -47,7 +46,6 @@ try:
         if county_code != "":
                 # https://api.weather.gov/alerts/active?point=41,-87
             tagsToKeep = ["cap:urgency", "cap:severity", "cap:certainty"]
-            #xmlWeatherAlerts = makeRequestGetXML(f"https://alerts.weather.gov/cap/wwaatmget.php?x={county_code}&y=1", 1, tagsToKeep, False)
             xmlWeatherAlerts = limitedGetRequest(f"https://alerts.weather.gov/cap/wwaatmget.php?x={county_code}&y=1", tagsToKeep, timeout=15)
             
             if xmlWeatherAlerts:
@@ -85,8 +83,9 @@ try:
         gc.collect() 
         # Extract cloud coverage percent
         hourlyCloudAmount = getXMLValues(getXMLElements(xmlWeatherResponseLines, "cloud-amount")[0])
-        gc.collect()
+
         del xmlWeatherResponseLines, getXMLElements, getXMLValues
+        gc.collect()
 
         # Now we begin analyzing the retrived information
         # Getting the current time
@@ -137,20 +136,20 @@ try:
         currentTemp = hourlyTemps[0]
 
         daySplitIndex = round( ( 24 - currentHour ) / 3 )
+        # this string will function as the second displayed line
         forecastString = ' '.join(forecastList[:daySplitIndex]) + '|' + ' '.join(forecastList[daySplitIndex:])
 
         line1_part1 = f"{currentTemp} {cautionAlertString}"
         spaceCount = 16-len(line1_part1)-len(f"{minTemp},{maxTemp}")
         line1 = line1_part1 + " " * spaceCount + f"{minTemp},{maxTemp}"
-        line2 = forecastString
 
-        del n, median_temp, probaility_of_rain, median_cloud_coverage, weather_letter, minTemp, maxTemp, currentTemp, daySplitIndex,\
+        del n, median_temp, probaility_of_rain, median_cloud_coverage, weather_letter, minTemp, maxTemp, currentTemp, daySplitIndex, \
               forecastString, forecastList, currentHour, hourlyCloudAmount, hourlyPrecipitation, hourlyTemps, \
                 startTimeStamps
 
         # Now we can display the weather forecast
         from functions import show_on_lcd
-        show_on_lcd(line1, line2)
+        show_on_lcd(line1, forecastString)
         del show_on_lcd
 
         # We can now shut down wifi
@@ -175,7 +174,7 @@ try:
         else: # if we don't have a set time sleep for 10 minutes and try to run the loop again
             sleepTime = 600
 
-        del minuteOfHour, deltaFrom5, deltaFrom35, line1_part1, spaceCount, line1, line2
+        del minuteOfHour, deltaFrom5, deltaFrom35, line1_part1, spaceCount, line1
 
         gc.collect()
 
@@ -188,6 +187,7 @@ except BaseException as e:
     show_on_lcd(str(e)[:16], str(e)[16:32])
     from random import randint
     numb = randint(0,1000)
+    raise
     #with open(f"_{numb}.txt","w") as file:
     #    file.write(str(dir()))
     #    file.write(str(e))

@@ -20,10 +20,8 @@ def limitedGetRequest(url, tagsToKeep=(), timeout=15):
     s.settimeout(timeout) # time for connection to timeout in seconds
     s.connect(ai[-1])
     s = ussl.wrap_socket(s, server_hostname=host)
-    s.write(f"GET /{target} HTTP/1.0\r\n")
-    s.write(f"Host: {host}\r\n")
-    s.write(b"User-agent: Mozilla/5.0\r\n")
-    s.write(b"Connection: close\r\n\r\n")
+    s.setblocking(True)
+    s.write(f"GET /{target} HTTP/1.0\r\nHost: {host}\r\nUser-agent: Mozilla/5.0\r\nConnection: close\r\n\r\n")
     
     keptLines = []
     strBuff = []
@@ -47,8 +45,7 @@ def limitedGetRequest(url, tagsToKeep=(), timeout=15):
                     strBuff.append(x)
                 
                 elif x == ">" and buildString and not keepLine:
-                    bufferTagName = "".join(strBuff[ 1: -1 ]).split(" ",1)[0]
-                    
+                    bufferTagName = "".join(strBuff[1:-1]).split(" ",1)[0]
                     if any( tag in bufferTagName for tag in tagsToKeep ) and strBuff[1] != "/":
                         keepLine = True
                     else:
@@ -66,13 +63,12 @@ def limitedGetRequest(url, tagsToKeep=(), timeout=15):
                     
         else:
             break
-
+    
     s.close()
     del s
     gc.collect()
     
     return (keptLines)
-
 
 def getXMLElements(xmlInput, tagName, attributeNames=[], attributeValues=[]):
 
@@ -103,38 +99,36 @@ def getXMLElements(xmlInput, tagName, attributeNames=[], attributeValues=[]):
 
     # the below pattern will pull out all the possible attributes assosiated with a specific tag and append them to the list attributeNames
 
-    from re import compile as regex_compile
+    import re
     import gc
 
-    patt = regex_compile(f"<{tagName}(.*?)</{tagName}>")
-    elements = []
+    patt = re.compile(f"<{tagName}(.*?)</{tagName}>")
+    elementsFiltered = []
 
-    for xmlLine in xmlInput:
+    while xmlInput:
+        xmlLine = xmlInput.pop()
         n = 0
         while n < len(xmlLine):
             regSearch = patt.search(xmlLine[n:])
             if regSearch != None:
                 n += regSearch.end()
-                elements.append(regSearch.group(0))
+                elementsFiltered.append(regSearch.group(0))
             else:
                 break
   
-    del xmlInput, regSearch, patt, n, xmlLine 
-    
-    #
-    # Now we iterate over the elements only selected by tagname and check if they have the correct attributes
-    #
+    del regSearch, patt, n, xmlLine 
 
-    badElementIndicies = []
+    elementsFiltered2 = []
 
     if attributeNames:
-        for k in range(len(elements)):
-
+        while elementsFiltered:
+            element = elementsFiltered.pop()
             correctAttributes = False
+            
             for b in range(len(attributeNames)):
 
-                patt = regex_compile(f"{attributeNames[b]}=\"(.*?)\"")
-                searchResult = patt.search(elements[k])
+                patt = re.compile(f"{attributeNames[b]}=\"(.*?)\"")
+                searchResult = patt.search(element)
 
                 if searchResult == None:
                     correctAttributes = False
@@ -145,13 +139,15 @@ def getXMLElements(xmlInput, tagName, attributeNames=[], attributeValues=[]):
                 elif searchResult.group(1) == attributeValues[b]:
                     correctAttributes = True
 
-            if not correctAttributes:
-                badElementIndicies.append(k)
+            if correctAttributes:
+                elementsFiltered2.append(element)
 
-            del searchResult, patt, correctAttributes, b, k
+            del searchResult, patt, correctAttributes, b, element
 
-    # return a list of elements that have matching input attributes
-    return tuple([elements[i] for i in range(len(elements)) if i not in badElementIndicies])
+        return (elementsFiltered2)
+
+    else:
+        return (elementsFiltered)
 
 def getXMLValues(xmlInput, valueTag="value"):
     
@@ -165,9 +161,9 @@ def getXMLValues(xmlInput, valueTag="value"):
     # If the above string is given as the xmlInput the below will be returned
     # ('71','75','84','88','91')
 
-    from re import compile as regex_compile
+    import re
 
-    patt = regex_compile(f"<{valueTag}>(.*?)</{valueTag}>")
+    patt = re.compile(f"<{valueTag}>(.*?)</{valueTag}>")
     values = []
     n = 0
     while n < len(xmlInput):
@@ -185,13 +181,15 @@ def getCurrentTime(timezone_offset):
     # returns a touple of current (hour, minute) based on time server call
     # timezone_offset should be given as an integer for hours difference from GMT
     
-    from time import localtime, sleep
-    from ntptime import settime
+    from time import localtime
+    import ntptime
+    #from ntptime import settime
     
-    sleep(1)
+    ntptime.timeout = 15
+    ntptime.host = "pool.ntp.org"
 
     try:
-        settime()
+        ntptime.settime()
         local_time = localtime()
         hour = local_time[3] + timezone_offset
         
