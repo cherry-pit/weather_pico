@@ -1,16 +1,16 @@
 #!/usr/bin/python3
 
-from parameters import *
-from network import WLAN, STA_IF
-from time import sleep
 import gc
+import network
+from time import sleep
+import parameters as params
+import functions
 
 gc.enable()
 
-wlan = WLAN(STA_IF)
+wlan = network.WLAN(network.STA_IF)
 
-from functions import show_on_lcd
-show_on_lcd("Starting...", "")
+functions.show_on_lcd("Starting...", "")
 sleep(0.75)
 conditions = {'C':'Clear',
               'O':'Overcast',
@@ -19,23 +19,22 @@ conditions = {'C':'Clear',
                '!' : 'Weather advisory',
                "*!!!!!*" : 'Severe Weather'}
 for key in sorted(conditions):
-   show_on_lcd(key,conditions[key])
+   functions.show_on_lcd(key,conditions[key])
    sleep(0.1)
-del show_on_lcd, conditions, key
+del conditions, key
 
 try:
     
     while True:
             
         wlan.active(True)
-        wlan.connect(WIFI_SSID, WIFI_PASSWORD)            
+        wlan.connect(params.WIFI_SSID, params.WIFI_PASSWORD)            
         while not wlan.isconnected():
             sleep(4)
 
         # call weather .gov for the weather report closest to the provided US long and lat
-        from functions import limitedGetRequest
         tagsToKeep = ["start-valid-time", "temperature", "probability-of-precipitation", "cloud-amount"]
-        xmlWeatherResponseLines = limitedGetRequest(f"https://forecast.weather.gov/MapClick.php?lat={lat}&lon={long}&FcstType=digitalDWML", tagsToKeep, timeout=15)
+        xmlWeatherResponseLines = functions.limitedGetRequest(f"https://forecast.weather.gov/MapClick.php?lat={params.lat}&lon={params.long}&FcstType=digitalDWML", tagsToKeep, timeout=15)
 
         gc.collect()
 
@@ -43,10 +42,10 @@ try:
         # Define the varible used to show if there is a weather alert
         cautionAlertString = ""
         # Using the county code if provided from the paramters file to see if there are any weather alerts for the county
-        if county_code != "":
+        if params.county_code != "":
                 # https://api.weather.gov/alerts/active?point=41,-87
             tagsToKeep = ["cap:urgency", "cap:severity", "cap:certainty"]
-            xmlWeatherAlerts = limitedGetRequest(f"https://alerts.weather.gov/cap/wwaatmget.php?x={county_code}&y=1", tagsToKeep, timeout=15)
+            xmlWeatherAlerts = functions.limitedGetRequest(f"https://alerts.weather.gov/cap/wwaatmget.php?x={params.county_code}&y=1", tagsToKeep, timeout=15)
             
             if xmlWeatherAlerts:
                 for n in range(0, len(xmlWeatherAlerts), 3):
@@ -67,32 +66,29 @@ try:
                 
                 del xmlWeatherAlerts, urgency, severity, certainty
 
-        del limitedGetRequest, tagsToKeep
+        del tagsToKeep
 
         gc.collect()
 
-        from functions import getXMLElements, getXMLValues
         # Extract the start time stamps -- these serve as indecies
-        startTimeStamps = getXMLValues("".join(getXMLElements(xmlWeatherResponseLines, "start-valid-time")), valueTag="start-valid-time")
+        startTimeStamps = functions.getXMLValues("".join(functions.getXMLElements(xmlWeatherResponseLines, "start-valid-time")), valueTag="start-valid-time")
         gc.collect()
         # Extract the     hourly temp
-        hourlyTemps = getXMLValues(getXMLElements(xmlWeatherResponseLines, "temperature", ["type"], ["hourly"])[0])
+        hourlyTemps = functions.getXMLValues(functions.getXMLElements(xmlWeatherResponseLines, "temperature", ["type"], ["hourly"])[0])
         gc.collect()
         # Extract probabilty of rain as a percent
-        hourlyPrecipitation = getXMLValues(getXMLElements(xmlWeatherResponseLines, "probability-of-precipitation" )[0])
+        hourlyPrecipitation = functions.getXMLValues(functions.getXMLElements(xmlWeatherResponseLines, "probability-of-precipitation" )[0])
         gc.collect() 
         # Extract cloud coverage percent
-        hourlyCloudAmount = getXMLValues(getXMLElements(xmlWeatherResponseLines, "cloud-amount")[0])
+        hourlyCloudAmount = functions.getXMLValues(functions.getXMLElements(xmlWeatherResponseLines, "cloud-amount")[0])
 
-        del xmlWeatherResponseLines, getXMLElements, getXMLValues
+        del xmlWeatherResponseLines
         gc.collect()
 
         # Now we begin analyzing the retrived information
         # Getting the current time
-        from functions import getCurrentTime
-        currentHour, minuteOfHour = getCurrentTime(timezone_offset)
-        del getCurrentTime
-
+        currentHour, minuteOfHour = functions.getCurrentTime(params.timezone_offset)
+        
         gc.collect()
 
         # we want to treat the current hour as the first starting index for all the lists of values
@@ -148,9 +144,7 @@ try:
                 startTimeStamps
 
         # Now we can display the weather forecast
-        from functions import show_on_lcd
-        show_on_lcd(line1, forecastString)
-        del show_on_lcd
+        functions.show_on_lcd(line1, forecastString)
 
         # We can now shut down wifi
         wlan.disconnect()
@@ -182,9 +176,8 @@ try:
 
 
 except BaseException as e:
-    from functions import show_on_lcd
     print(e)
-    show_on_lcd(str(e)[:16], str(e)[16:32])
+    functions.show_on_lcd(str(e)[:16], str(e)[16:32])
     from random import randint
     numb = randint(0,1000)
     raise

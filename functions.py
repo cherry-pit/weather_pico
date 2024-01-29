@@ -180,7 +180,7 @@ def getCurrentTime(timezone_offset):
     # returns a touple of current (hour, minute) based on time server call
     # timezone_offset should be given as an integer for hours difference from GMT
     
-    from time import localtime
+    import time
     import ntptime
     #from ntptime import settime
     
@@ -189,7 +189,7 @@ def getCurrentTime(timezone_offset):
 
     try:
         ntptime.settime()
-        local_time = localtime()
+        local_time = time.localtime()
         hour = local_time[3] + timezone_offset
         
         if hour < 0:
