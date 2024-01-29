@@ -144,7 +144,7 @@ try:
         line1 = line1_part1 + " " * spaceCount + f"{minTemp},{maxTemp}"
 
         del n, median_temp, probaility_of_rain, median_cloud_coverage, weather_letter, minTemp, maxTemp, currentTemp, daySplitIndex, \
-              forecastString, forecastList, currentHour, hourlyCloudAmount, hourlyPrecipitation, hourlyTemps, \
+              forecastList, currentHour, hourlyCloudAmount, hourlyPrecipitation, hourlyTemps, \
                 startTimeStamps
 
         # Now we can display the weather forecast
@@ -174,7 +174,7 @@ try:
         else: # if we don't have a set time sleep for 10 minutes and try to run the loop again
             sleepTime = 600
 
-        del minuteOfHour, deltaFrom5, deltaFrom35, line1_part1, spaceCount, line1
+        del minuteOfHour, deltaFrom5, deltaFrom35, line1_part1, spaceCount, line1, forecastString
 
         gc.collect()
 

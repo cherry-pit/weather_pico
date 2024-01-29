@@ -105,8 +105,7 @@ def getXMLElements(xmlInput, tagName, attributeNames=[], attributeValues=[]):
     patt = re.compile(f"<{tagName}(.*?)</{tagName}>")
     elementsFiltered = []
 
-    while xmlInput:
-        xmlLine = xmlInput.pop()
+    for xmlLine in xmlInput:
         n = 0
         while n < len(xmlLine):
             regSearch = patt.search(xmlLine[n:])
