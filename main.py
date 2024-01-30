@@ -34,7 +34,7 @@ try:
 
         # call weather .gov for the weather report closest to the provided US long and lat
         tagsToKeep = ["start-valid-time", "temperature", "probability-of-precipitation", "cloud-amount"]
-        xmlWeatherResponseLines = functions.limitedGetRequest(f"https://forecast.weather.gov/MapClick.php?lat={params.lat}&lon={params.long}&FcstType=digitalDWML", tagsToKeep, timeout=15)
+        xmlWeatherResponseLines = functions.limitedGetRequest(f"https://forecast.weather.gov/MapClick.php?lat={params.lat}&lon={params.long}&FcstType=digitalDWML", tagsToKeep, timeout=60)
 
         gc.collect()
 
@@ -45,7 +45,7 @@ try:
         if params.county_code != "":
                 # https://api.weather.gov/alerts/active?point=41,-87
             tagsToKeep = ["cap:urgency", "cap:severity", "cap:certainty"]
-            xmlWeatherAlerts = functions.limitedGetRequest(f"https://alerts.weather.gov/cap/wwaatmget.php?x={params.county_code}&y=1", tagsToKeep, timeout=15)
+            xmlWeatherAlerts = functions.limitedGetRequest(f"https://alerts.weather.gov/cap/wwaatmget.php?x={params.county_code}&y=1", tagsToKeep, timeout=60)
             
             if xmlWeatherAlerts:
                 for n in range(0, len(xmlWeatherAlerts), 3):
@@ -164,11 +164,13 @@ try:
                 sleepTime = (( 5 + (60 - minuteOfHour) ) * 60 ) + 60
             elif minuteOfHour == 5 or minuteOfHour == 35:
                 sleepTime = 60
-                
+
+            del deltaFrom5, deltaFrom35
+
         else: # if we don't have a set time sleep for 10 minutes and try to run the loop again
             sleepTime = 600
 
-        del minuteOfHour, deltaFrom5, deltaFrom35, line1_part1, spaceCount, line1, forecastString
+        del minuteOfHour, line1_part1, spaceCount, line1, forecastString
 
         gc.collect()
 
