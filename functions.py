@@ -198,6 +198,7 @@ def getCurrentTime(timezone_offset):
         return (hour, local_time[4])
     
     except:
+        print("Failed to set time")
         return (-1, -1)
     
 def show_on_lcd(line1,line2):
