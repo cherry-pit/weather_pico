@@ -6,6 +6,8 @@
 
 def limitedGetRequest(url, tagsToKeep=(), timeout=15,  maxConnectionAttempts=10):
     
+    print(url)
+
     import ussl, usocket, gc
 
     scheme, _, host, target = url.split("/",3)
@@ -98,72 +100,7 @@ def limitedGetRequest(url, tagsToKeep=(), timeout=15,  maxConnectionAttempts=10)
             pass
 
     raise
-   
-def limitedGetRequest1(url, tagsToKeep=(), timeout=15):
-    
-    import ussl, usocket, gc
 
-    scheme, _, host, target = url.split("/",3)
-
-    if scheme == "https:":
-        port = 443
-    elif scheme == "http:":
-        port = 80
-
-    ai = usocket.getaddrinfo(host, port, 0, usocket.SOCK_STREAM)[0]
-    s = usocket.socket(ai[0], usocket.SOCK_STREAM, ai[2])
-    s.settimeout(timeout) # time for connection to timeout in seconds
-    s.connect(ai[-1])
-    s = ussl.wrap_socket(s, server_hostname=host)
-    s.setblocking(True)
-    s.write(f"GET /{target} HTTP/1.0\r\nHost: {host}\r\nUser-agent: Mozilla/5.0\r\nConnection: close\r\n\r\n")
-    
-    keptLines = []
-    strBuff = []
-    buildString = False
-    keepLine = False
-    while True:
-        
-        buff = s.read(512)
-        gc.collect()
-        
-        if buff != b"":
-            for x in buff:
-                
-                x = chr(x)
-
-                if buildString:
-                    strBuff.append(x)
-                
-                if x == "<" and not buildString:
-                    buildString = True
-                    strBuff.append(x)
-                
-                elif x == ">" and buildString and not keepLine:
-                    bufferTagName = "".join(strBuff[1:-1]).split(" ",1)[0]
-                    if any( tag in bufferTagName for tag in tagsToKeep ) and strBuff[1] != "/":
-                        keepLine = True
-                    else:
-                        buildString = False
-                        keepLine = False
-                        strBuff = []
-                    
-                elif x == ">" and buildString and keepLine:
-                    closingTag = "</" + bufferTagName + ">"
-                    if "".join(strBuff[-len(closingTag):]) == closingTag:
-                        keptLines.append( "".join(strBuff) )
-                        buildString = False
-                        keepLine = False
-                        strBuff = []
-                    
-        else:
-            break
-    
-    s.close()
-    del s
-    gc.collect()
-    
-    return (keptLines)
 
 def getXMLElements(xmlInput, tagName, attributeNames=[], attributeValues=[]):
 
@@ -270,7 +207,7 @@ def getXMLValues(xmlInput, valueTag="value"):
 
     return tuple(values)
 
-def getCurrentTime(timezone_offset):
+def getCurrentTime(timezone_offset, maxConnectionAttempts=10):
     
     # returns a touple of current (hour, minute) based on time server call
     # timezone_offset should be given as an integer for hours difference from GMT
@@ -282,19 +219,25 @@ def getCurrentTime(timezone_offset):
     ntptime.timeout = 15
     ntptime.host = "pool.ntp.org"
 
-    try:
-        ntptime.settime()
-        local_time = time.localtime()
-        hour = local_time[3] + timezone_offset
-        
-        if hour < 0:
-            hour += 24
+    connectionAttempts = 0
+    while connectionAttempts < maxConnectionAttempts:
+        connectionAttempts += 1
 
-        return (hour, local_time[4])
-    
-    except:
-        print("Failed to set time")
-        return (-1, -1)
+        try:
+            ntptime.settime()
+            local_time = time.localtime()
+            hour = local_time[3] + timezone_offset
+            
+            if hour < 0:
+                hour += 24
+
+            return (hour, local_time[4])
+        
+        except:
+            print("Failed to set time")
+            pass
+        
+    return (-1, -1)
     
 def show_on_lcd(line1,line2):
 
