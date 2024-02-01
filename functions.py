@@ -6,7 +6,7 @@
 
 def limitedGetRequest(url, tagsToKeep=(), timeout=15,  maxConnectionAttempts=10):
     
-    print(url)
+    #print(url)
 
     import ussl, usocket, gc
 
@@ -27,7 +27,7 @@ def limitedGetRequest(url, tagsToKeep=(), timeout=15,  maxConnectionAttempts=10)
             s = usocket.socket(ai[0], usocket.SOCK_STREAM, ai[2])
             s.settimeout(timeout) # time for connection to timeout in seconds
         except:
-            print("Issue setting up socket")
+            #print("Issue setting up socket")
             s.close()
             continue 
 
@@ -36,14 +36,14 @@ def limitedGetRequest(url, tagsToKeep=(), timeout=15,  maxConnectionAttempts=10)
             s = ussl.wrap_socket(s, server_hostname=host)
             s.setblocking(True)
         except:
-            print("Issue connecting to server or wrapping socket")
+            #print("Issue connecting to server or wrapping socket")
             s.close()
             continue
     
         try:
             s.write(f"GET /{target} HTTP/1.0\r\nHost: {host}\r\nUser-agent: Mozilla/5.0\r\nConnection: close\r\n\r\n")
         except:
-            print("Issue writing to socket")
+            #print("Issue writing to socket")
             s.close()
             continue
     
@@ -95,7 +95,7 @@ def limitedGetRequest(url, tagsToKeep=(), timeout=15,  maxConnectionAttempts=10)
             return (keptLines)
 
         except:
-            print("Issue reading from socket")
+            #print("Issue reading from socket")
             s.close()
             pass
 
@@ -234,7 +234,7 @@ def getCurrentTime(timezone_offset, maxConnectionAttempts=10):
             return (hour, local_time[4])
         
         except:
-            print("Failed to set time")
+            #print("Failed to set time")
             pass
         
     return (-1, -1)
@@ -254,4 +254,5 @@ def show_on_lcd(line1,line2):
     i2c = I2C(0, sda=Pin(0), scl=Pin(1), freq=200000)
     lcd = I2cLcd(i2c, I2C_ADDR, I2C_NUM_ROWS, I2C_NUM_COLS)
     lcd.putstr(f'{line1}\n{line2}')
+
 
