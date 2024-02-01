@@ -18,8 +18,8 @@ conditions = {'C':'Clear',
               'O':'Overcast',
               'R':'Rain',
                '*':'Snow',
-               '!' : 'Weather advisory',
-               "*!!!!!*" : 'Severe Weather'}
+               '! - *!!!!!*' : 'Weather advisory'
+              }
 for key in sorted(conditions):
    functions.show_on_lcd(key,conditions[key])
    sleep(1.5)
@@ -188,4 +188,5 @@ except BaseException as e:
     #with open(f"_{numb}.txt","w") as file:
     #    file.write(str(dir()))
     #    file.write(str(e))
+
 
