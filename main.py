@@ -14,11 +14,19 @@ functions.show_on_lcd("Starting...", "")
 sleep(1)
 functions.show_on_lcd("| - Separates today", " and tomorrow")
 sleep(1.5)
+functions.show_on_lcd(". - Shows noon", "")
+sleep(1.5)
+functions.show_on_lcd("XX", "Current temp")
+sleep(1.5)
+functions.show_on_lcd("           XX,XX", "Min, Max temp")
+sleep(1.5)
+functions.show_on_lcd("Next 24 hrs", "X X X X X X X X")
+sleep(1.5)
 conditions = {'C':'Clear',
               'O':'Overcast',
               'R':'Rain',
                '*':'Snow',
-               '! - *!!!!!*' : 'Weather advisory'
+               '! to *!!!!!*' : 'Weather advisory'
               }
 for key in sorted(conditions):
    functions.show_on_lcd(key,conditions[key])
@@ -135,7 +143,22 @@ try:
 
         daySplitIndex = round( ( 24 - currentHour ) / 3 )
         # this string will function as the second displayed line
-        forecastString = ' '.join(forecastList[:daySplitIndex]) + '|' + ' '.join(forecastList[daySplitIndex:])
+        #forecastString = ' '.join(forecastList[:daySplitIndex]) + '|' + ' '.join(forecastList[daySplitIndex:])
+        if currentHour <= 12:
+            noonSplitIndex = round( ( 12 - currentHour ) / 3 )
+        else:
+            noonSplitIndex = daySplitIndex + 4
+
+        if noonSplitIndex < daySplitIndex:
+            forecastString = \
+            ' '.join(forecastList[:noonSplitIndex]) + "." + \
+            ' '.join(forecastList[noonSplitIndex:daySplitIndex]) + "|" + \
+            ' '.join(forecastList[daySplitIndex:])
+        else:
+            forecastString = \
+            ' '.join(forecastList[:daySplitIndex]) + "|" + \
+            ' '.join(forecastList[daySplitIndex:noonSplitIndex]) + "." + \
+            ' '.join(forecastList[noonSplitIndex:])
 
         line1_part1 = f"{currentTemp} {cautionAlertString}"
         spaceCount = 16-len(line1_part1)-len(f"{minTemp},{maxTemp}")
@@ -143,7 +166,7 @@ try:
 
         del n, median_temp, probaility_of_rain, median_cloud_coverage, weather_letter, minTemp, maxTemp, currentTemp, daySplitIndex, \
               forecastList, currentHour, hourlyCloudAmount, hourlyPrecipitation, hourlyTemps, \
-                startTimeStamps
+                startTimeStamps, noonSplitIndex
 
         # Now we can display the weather forecast
         functions.show_on_lcd(line1, forecastString)
