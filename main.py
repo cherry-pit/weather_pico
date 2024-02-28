@@ -55,7 +55,7 @@ try:
         if params.county_code != "":
                 # https://api.weather.gov/alerts/active?point=41,-87
             tagsToKeep = ["cap:urgency", "cap:severity", "cap:certainty"]
-            xmlWeatherAlerts = functions.limitedGetRequest(f"https://alerts.weather.gov/cap/wwaatmget.php?x={params.county_code}&y=1", tagsToKeep, timeout=60)
+            xmlWeatherAlerts = functions.limitedGetRequest(f"https://api.weather.gov/alerts/active.atom?zone={params.county_code}", tagsToKeep, timeout=60)
             
             if xmlWeatherAlerts:
                 for n in range(0, len(xmlWeatherAlerts), 3):
