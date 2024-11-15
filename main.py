@@ -4,7 +4,6 @@ import gc
 import network
 from time import sleep
 import parameters as params
-import functions
 import machine
 
 gc.enable()
