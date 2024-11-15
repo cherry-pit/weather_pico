@@ -19,10 +19,11 @@ wlan = network.WLAN(network.STA_IF)
 #######################################################
 
 def limitedGetRequest(url, tagsToKeep=(), timeout=8,  maxConnectionAttempts=10):
+    
+    import ssl, socket, gc
+    global watchdog_timer
 
     watchdog_timer.feed()    
-
-    import ssl, socket, gc
 
     scheme, _, host, target = url.split("/",3)
 
