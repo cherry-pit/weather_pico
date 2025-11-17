@@ -241,17 +241,17 @@ try:
 
     del forecastDict
 
-    print(hourlyTemps)
-    print(hourlyPrecipitation)
-    print(hourlyCloudAmount)
-    print(cautionAlertString)
+    print('hourlyTemps: ',hourlyTemps)
+    print('hourlyPrecipitation: ',hourlyPrecipitation)
+    print('hourlyCloudAmount: ',hourlyCloudAmount)
+    print('cautionAlertString: ',cautionAlertString)
 
     #######################################################
     ## Create the forecast string that will be presented ##
     #######################################################
 
     currentHour = time.localtime(time.mktime(time.gmtime()) + (parameters.local_timezone_offset*3600))[3]
-    print(currentHour)
+    print('currentHour', currentHour)
     forecastList = []
 
     # Pull in indicies for the next 24 hours of data in steps of 3
