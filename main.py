@@ -8,6 +8,9 @@ import machine
 import re
 import gc
 import ntptime
+from machine import WDT
+
+wdt = WDT(timeout=8300)
 
 gc.enable()
 
@@ -38,7 +41,8 @@ try:
         print(f'Trying to connect to wifi {wifiRetryCount} ...')
         if wifiRetryCount > maxWifiRetryCount:
             raise CannotConnectToWifi()    
-        time.sleep(10)
+        wdt.feed()
+        time.sleep(6)
         wifiRetryCount += 1
 
     print('Wifi Connection OK')
@@ -54,6 +58,7 @@ try:
     settimeAttemptCount = 0
     settimeSuccessful = False
     while settimeAttemptCount < 10:
+        wdt.feed()
         try:
             settimeAttemptCount += 1
             ntptime.settime()
@@ -62,7 +67,7 @@ try:
             break
         except:
             print('Time set FAILED')
-            time.sleep(10)
+            time.sleep(6)
             
     class NTPSetTimeFailed(Exception):
         def __init__(self, message="NTPSetTimeFailed"):
@@ -88,7 +93,8 @@ try:
         functions.clearBuffer(responseBuffer)
         responseLength = functions.getRequestWrapper(f"https://api.weather.gov/alerts/active.atom?zone={parameters.county_code}"
                                                 , header
-                                                , responseBuffer)
+                                                , responseBuffer
+                                                , wdt)
         print('API alert call OK')
         
         weatherAlertsDict = {}
@@ -96,15 +102,15 @@ try:
         weatherAlertsDict['alertUrgencies'] = [x[0] for x in 
                                                 functions.findAllValues(b'<entry',b'</entry>'
                                                                     , b'<cap:urgency>', b'</cap:urgency>'
-                                                                    , responseBuffer, responseLength)]
+                                                                    , responseBuffer, responseLength, wdt)]
         weatherAlertsDict['alertSeverities'] = [x[0] for x in 
                                                 functions.findAllValues(b'<entry',b'</entry>'
                                                                     , b'<cap:severity>', b'</cap:severity>'
-                                                                    , responseBuffer, responseLength)]
+                                                                    , responseBuffer, responseLength, wdt)]
         weatherAlertsDict['alertCertainties'] = [x[0] for x in
                                                 functions.findAllValues(b'<entry',b'</entry>'
                                                                         , b'<cap:certainty>', b'</cap:certainty>'
-                                                                        , responseBuffer, responseLength)]
+                                                                        , responseBuffer, responseLength, wdt)]
 
         del header
 
@@ -146,7 +152,8 @@ try:
     functions.clearBuffer(responseBuffer)
     responseLength = functions.getRequestWrapper(f'https://api.weather.gov/gridpoints/{parameters.forecastOffice}/{parameters.gridX},{parameters.gridY}/forecast/hourly'
                                                 ,header
-                                                ,responseBuffer)
+                                                ,responseBuffer
+                                                , wdt)
     print('Forecast API call OK')
 
     del header
@@ -164,23 +171,23 @@ try:
 
     forecastDict['starttimesList'] = functions.findAllValues(b'<time-layout',b'</time-layout>'
                                                             , b'<start-valid-time>', b'</start-valid-time>'
-                                                            , responseBuffer, responseLength)[0]
+                                                            , responseBuffer, responseLength, wdt)[0]
     print('starttimesList OK')
     forecastDict['endtimesList'] = functions.findAllValues(b'<time-layout',b'</time-layout>'
                                                             , b'<end-valid-time>', b'</end-valid-time>'
-                                                            , responseBuffer, responseLength)[0]
+                                                            , responseBuffer, responseLength, wdt)[0]
     print('endtimesList OK')
     forecastDict['temperatureList'] = functions.findAllValues(b'<temperature type=\"hourly\" units=\"Fahrenheit\" ',b'</temperature>'
                                                             , b'<value>', b'</value>'
-                                                            , responseBuffer, responseLength)[0]
+                                                            , responseBuffer, responseLength, wdt)[0]
     print('temperatureList OK')
     forecastDict['precipitationList'] = functions.findAllValues(b'<probability-of-precipitation',b'</probability-of-precipitation>'
                                                             , b'<value>', b'</value>'
-                                                            , responseBuffer, responseLength)[0]
+                                                            , responseBuffer, responseLength, wdt)[0]
     print('precipitationList OK')
     forecastDict['cloudList'] = functions.findAllValues(b'<cloud-amount',b'</cloud-amount>'
                                                             , b'<value>', b'</value>'
-                                                            , responseBuffer, responseLength)[0]
+                                                            , responseBuffer, responseLength, wdt)[0]
     print('cloudList OK')
     #########################################
     ## Check if forecast periods are valid ##
@@ -301,13 +308,21 @@ try:
 
 
     wlan.active(False)
-    time.sleep(60*15)
+
+    for n in range((60*15)/6): # Iterate so we can feed the watchdog timer
+        wdt.feed()
+        time.sleep(6)
 
     machine.soft_reset()
 
 except Exception as e:
     print('Error:',e)
     functions.show_on_lcd(str(e)[:15], 'ERROR')
-    time.sleep(60*10)
+    
+    for n in range((60*10)/6): # Iterate so we can feed the watchdog timer
+        wdt.feed()
+        time.sleep(6)
+    
     machine.soft_reset()
+
 

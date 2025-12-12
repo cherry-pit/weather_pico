@@ -26,8 +26,8 @@ def convertTimeStampToUTCEpoch(inputTimestamp):
     
     return inputTimestampUTCEpoch
 
-def getRequestWrapper(endpoint, headers, buffer):
-    
+def getRequestWrapper(endpoint, headers, buffer, watchdogTimer):
+
     import urequests
 
     class BadAPIStatusCode(Exception):
@@ -41,6 +41,8 @@ def getRequestWrapper(endpoint, headers, buffer):
     
     offset = 0
     while True:
+        if watchdogTimer:
+            watchdogTimer.feed()
         chunk = response.raw.read(1024)
         if not chunk or offset + len(chunk) > len(buffer):
             break
@@ -51,11 +53,14 @@ def getRequestWrapper(endpoint, headers, buffer):
 
     return offset
 
-def findallSubStrings(matchString,offsetAhead,buffer,bufferSize):
+def findallSubStrings(matchString,offsetAhead,buffer,bufferSize, watchdogTimer):
+
     offset = 0
     windowSize = len(matchString)
     foundIndicies = []
-    while offset+windowSize-1 < bufferSize: 
+    while offset+windowSize-1 < bufferSize:
+        if watchdogTimer:
+            watchdogTimer.feed() 
         searchString = bytes(memoryview(buffer)[offset:offset+windowSize])
         if matchString.upper() == searchString.upper():
             if offsetAhead:
@@ -65,25 +70,28 @@ def findallSubStrings(matchString,offsetAhead,buffer,bufferSize):
         offset += 1
     return foundIndicies
 
-def findallRangeGroups(match1, match2, buffer, bufferSize):
+def findallRangeGroups(match1, match2, buffer, bufferSize, watchdogTimer):
     
-    startIndicies = findallSubStrings(match1, True, buffer, bufferSize)
-    endIndicies = findallSubStrings(match2, False, buffer, bufferSize)
+    startIndicies = findallSubStrings(match1, True, buffer, bufferSize, watchdogTimer)
+    endIndicies = findallSubStrings(match2, False, buffer, bufferSize, watchdogTimer)
     
     return [x for x in zip(startIndicies,endIndicies)]
 
-def findAllValues(parentTag1, parentTag2, childTag1, childTag2, buffer, bufferSize):
+def findAllValues(parentTag1, parentTag2, childTag1, childTag2, buffer, bufferSize, watchdogTimer):
 
     if not parentTag1 and not parentTag2:
         parentGroups=[(0,bufferSize)]
     else:
-        parentGroups = findallRangeGroups(parentTag1, parentTag2, buffer, bufferSize)
+        print('here!')
+        parentGroups = findallRangeGroups(parentTag1, parentTag2, buffer, bufferSize, watchdogTimer)
         if not parentGroups:
             return []
     
     allChildGroups = []
     for parentGroup in parentGroups:
-        childGroups = findallRangeGroups(childTag1, childTag2, memoryview(buffer)[parentGroup[0]:parentGroup[1]],parentGroup[1])
+        if watchdogTimer:
+            watchdogTimer.feed()
+        childGroups = findallRangeGroups(childTag1, childTag2, memoryview(buffer)[parentGroup[0]:parentGroup[1]],parentGroup[1], watchdogTimer)
         childGroupsBufferIndexed = [(x[0]+parentGroup[0], x[1]+parentGroup[0]) for x in childGroups]
         childGroupValues = [bytes(memoryview(buffer)[x[0]:x[1]]).decode() for x in childGroupsBufferIndexed]
         allChildGroups.append(childGroupValues)
@@ -109,5 +117,4 @@ def show_on_lcd(line1,line2):
 def clearBuffer(buffer):
     for i in range(len(memoryview(buffer))):
         memoryview(buffer)[i] = 0
-
 
